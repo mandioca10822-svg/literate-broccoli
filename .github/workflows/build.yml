@@ -1,19 +1,24 @@
-name: Compilar Mod
+name: Construir Mod
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Compilar Minecraft Mod
     runs-on: ubuntu-latest
 
     steps:
       - name: Baixar projeto
         uses: actions/checkout@v4
 
-      - name: Configurar Java
+      - name: Configurar Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,12 +26,16 @@ jobs:
 
       - name: Configurar Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
 
       - name: Compilar mod
-        run: chmod +x gradlew && ./gradlew build
+        run: gradle build --stacktrace
 
       - name: Disponibilizar arquivo JAR
         uses: actions/upload-artifact@v4
         with:
           name: Mod-compilado
-          path: build/libs/*.jar
+          path: '**/build/libs/*.jar'
+          if-no-files-found: error
+          retention-days: 7
