@@ -1,24 +1,23 @@
-name: Construir Mod
+
+name: Compilar Mod de Minecraft
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   build:
-    name: Compilar Minecraft Mod
     runs-on: ubuntu-latest
 
     steps:
       - name: Baixar projeto
         uses: actions/checkout@v4
 
-      - name: Configurar Java 17
+      - name: Configurar Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -29,8 +28,27 @@ jobs:
         with:
           gradle-version: '8.10.2'
 
+      - name: Encontrar projeto Gradle
+        run: |
+          FILE=$(find . -type f \( \
+            -name settings.gradle \
+            -o -name settings.gradle.kts \
+            -o -name build.gradle \
+            -o -name build.gradle.kts \
+          \) -not -path '*/.gradle/*' \
+            -not -path '*/build/*' | head -n 1)
+
+          if [ -z "$FILE" ]; then
+            echo "ERRO: Nenhum projeto Gradle encontrado."
+            exit 1
+          fi
+
+          DIR=$(dirname "$FILE")
+          echo "PROJECT_DIR=$DIR" >> "$GITHUB_ENV"
+          echo "Projeto encontrado em: $DIR"
+
       - name: Compilar mod
-        run: gradle build --stacktrace
+        run: gradle -p "$PROJECT_DIR" build --stacktrace
 
       - name: Disponibilizar arquivo JAR
         uses: actions/upload-artifact@v4
@@ -38,4 +56,3 @@ jobs:
           name: Mod-compilado
           path: '**/build/libs/*.jar'
           if-no-files-found: error
-          retention-days: 7
